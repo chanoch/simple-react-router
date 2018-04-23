@@ -45,10 +45,10 @@ export class SimpleReactRouter {
         this.render = this.render.bind(this);
 
         // render the initial application location
-        this.render(history.location);
+        this.render(this.history.location);
 
         // listen for state changes, invoking render on updates
-        history.listen(this.render);
+        this.history.listen(this.render);
     }
 
     /**

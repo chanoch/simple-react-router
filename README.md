@@ -7,12 +7,14 @@ In Konstantin's system, an array of routes together with the root level 'page' c
 
 To create an application using simple-react-router:
 
-1. Define the routes and the top level component that will be rendered for each route. 
-2. Define your reducers and the initial state
-3. Define any middlware - components which load data and apply operations to mutate the state
-4. Create your initial route, defining the entry point for the application
-5. Instantiate the router, passing it the above
-6. You can optionally dispatch a state on loading of application data from the server
+1. Define the routes 
+2. Define reducers and initial state
+3. Define middleware 
+4. Create your initial route
+5. Instantiate the router
+6. Load aync server data
+
+You can optionally dispatch a state on loading of application data from the server
 
 ## 0. Setting up your application
 The Single Page Application's (SPA's) HTML page is a standard react page which contains the following div to mount the application to:
@@ -20,9 +22,11 @@ The Single Page Application's (SPA's) HTML page is a standard react page which c
 ```javascript
         <div id="root"></div>
 ```
-The HTML page must also include an import for javascript for your application. I use webpack to bundle my JS and dependencies but I import the files statically into the page - can't remember why.
+The HTML page must also include an import for javascript for your application. I use webpack to bundle my JS and dependencies but I import the files statically into the page - can't remember why. There is a webpack mechanism for injecting the scripts into the page at the end of each page.
 
-The reducers, redux middlware, and action creators are all standard redux mechanisms so you will need to define those.
+The reducers, redux middlware, and action creators are all standard redux mechanisms so you will need to define those according to the redux standards.
+
+## 1. Define your routes
 
 ```javascript
 // Each page component is imported
@@ -40,5 +44,28 @@ const routes = [
 export default routes;
 ```
 
+## 2. Define reducers and initial state
+A redux reducer modifies the state according to the state change which just occurred. It shouldn't have side-effects.
+
+```javascript
+
+export function createMealPlanReducer(state, action) {
+    return {
+        ...state,
+        mealPlan: action.mealPlan,
+        action: CREATE_MEAL_PLAN
+    }
+}
+```
+
+
+## 3. Define middleware
+## 4. Create initial route
+## 5. Instantiate the router
+## 6. Load async data and dispatch a state change
+
+
 ## TODOs
 1. Change the application to include a container type top level component to allow alternative mount points and passing in configuration?
+2. Link to redux tutorial
+3. Link to webpack tut on setting up a simple project

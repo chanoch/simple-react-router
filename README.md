@@ -7,12 +7,28 @@ In Konstantin's system, an array of routes together with the root level 'page' c
 
 To create an application using simple-react-router:
 
+## Without redux configuration
+
+```javascript
+import HomePage from './HomePage';
+
+const routes = [
+    { path: '/', action: () => <HomePage /> },
+    { path: '/index.html', action: () => <HomePage /> },
+];
+
+import {SimpleReactRouter} from '@chanoch/simple-react-router';
+const router = new SimpleReactRouter(routes); 
+```
+
+## With redux configuration
+
 1. Define the routes 
 2. Define reducers and initial state
 3. Define middleware 
 4. Create your initial route
 5. Instantiate the router
-6. Load aync server data
+6. Load async server data
 
 You can optionally dispatch a state on loading of application data from the server
 

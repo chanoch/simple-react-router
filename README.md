@@ -69,3 +69,7 @@ export function createMealPlanReducer(state, action) {
 1. Change the application to include a container type top level component to allow alternative mount points and passing in configuration?
 2. Link to redux tutorial
 3. Link to webpack tut on setting up a simple project
+4. Testing
+
+## Change Log
+* 0.1 to 0.2 - implemented smart defaulting to null implementations for state, middleware, and reducer, Moved routes parameter which defines valid navigation to front of list to make those related to redux optional.

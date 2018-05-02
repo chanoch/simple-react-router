@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom';
 import toRegex from 'path-to-regexp';
 import createHistory from 'history/createBrowserHistory';
-import {createStore, applyMiddleware} from 'redux';
+import StoreCreator from './StoreCreator';
 
 /**
  * A light-weight router for simple SPAs which avoids using elements to implement
@@ -32,10 +32,11 @@ export class SimpleReactRouter {
      * @param {*} enhancers - a set of redux middleware
      * @param {*} routes - the set of routes for the applicationn
      */
-    constructor(rootReducer, initialState, enhancers, routes) {
+    constructor(routes, rootReducer, initialState, enhancers) {
         this.history = createHistory();
         this.routes = routes;
-        this.store = createStore(rootReducer, initialState, applyMiddleware(...enhancers));
+        
+        this.store = StoreCreator(rootReducer, initialState, enhancers);
 
         // bind the object's methods to this
         this.matchURI = this.matchURI.bind(this);

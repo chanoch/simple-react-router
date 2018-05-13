@@ -76,6 +76,9 @@ export function createMealPlanReducer(state, action) {
 
 
 ## 3. Define middleware
+The middlware will be injected with the state and the history object. This means that middlware
+can both mutate the state and navigate.
+
 ## 4. Create initial route
 ## 5. Instantiate the router
 ## 6. Load async data and dispatch a state change

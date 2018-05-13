@@ -28,9 +28,9 @@ export class SimpleReactRouter {
      * The last parameter is the full set of routes that should be supported by the router
      * 
      * @param {reducer} rootReducer - a react redux reducer
-     * @param {*} initialState - an initial redux store representing the start state
-     * @param {*} enhancers - a set of redux middleware
-     * @param {*} routes - the set of routes for the applicationn
+     * @param {Object} initialState - an initial redux store representing the start state
+     * @param {Array} enhancers - a set of redux middleware
+     * @param {Array} routes - the set of routes for the applicationn
      */
     constructor(routes, rootReducer, initialState, enhancers) {
         this.history = createHistory();

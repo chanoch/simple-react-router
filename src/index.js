@@ -17,6 +17,8 @@ import StoreCreator from './StoreCreator';
  */
 export class SimpleReactRouter {
 
+    static singleton;
+
     /**
      * The router class constructor accepts a redux root reducer which maps states to the
      * reducers which will update the state. An javascript object representing the initial
@@ -33,6 +35,14 @@ export class SimpleReactRouter {
      * @param {Array} routes - the set of routes for the applicationn
      */
     constructor(routes, rootReducer, initialState, enhancers) {
+        if(singleton) return singleton;
+        else {
+            this.singleton = init(routes, rootReducer, initialState, enhancers);
+            return singleton;
+        }
+    }
+
+    init(routes, rootReducer, initialState, enhancers) {
         this.history = createHistory();
         this.routes = routes;
         

@@ -2,7 +2,7 @@
   "name": "@chanoch/simple-react-router",
   "version": "0.3.1",
   "description": "A simple react router",
-  "main": "/dist/simple-react-router.min.js",
+  "main": "/dist/simple-react-router.js",
   "scripts": {
     "test": "test"
   },

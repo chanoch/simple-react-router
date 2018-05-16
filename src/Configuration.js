@@ -4,58 +4,63 @@ export default class Configuration {
     constructor(mountpath, config, history) {
         this.mountpath = mountpath;
 
-        this.initConfig = this.initConfig.bind(this);
-        this.rootReducer = this.rootReducer.bind(this);
-        this.initNullDriver = this.initNullDriver.bind(this);
+        config = this.instantiateDrivers(config);
+        this.config = this.configureMountpath(config, mountpath);
 
-        this.config = this.initConfig(mountpath, config);
-        this.routes = this.config.routes;
-
-        this.enhancers = this.initEnhancers(config, history);
-
+        this.actionConfigs = this.config.actionConfigs;
+        this.routes = this.initRoutes(config);
 
         this.nullDriver = this.initNullDriver();
+        this.rootReducer = this.initRootReducer();
+        this.enhancers = this.initEnhancers(history);
+        console.log(this.enhancers);
         this.initialDriver = this.initInitialDriver();
     }
 
-    rootReducer() {
-        return function(state, action) {
-            var matchingConfig = this.config.routes.find(
-                routeConfig => routeConfig.driver.type===action.type);
-            matchingConfig = matchingConfig||this.nullDriver;
-            return matchingConfig.driver.reducer(state, action);
-        }
-    }
-
-    initConfig(mountpath, config) {
-        var config = this.instantiateDrivers(config);
-        config = this.configureMountpath(config, mountpath);
-        return config;
-    }
+    /**
+     * INITIALIISATION FUNCTIONS
+     */
 
     instantiateDrivers(config) {
-        config.routes = config.routes.map(routeConfig => {
-            routeConfig.driver = routeConfig.driver();
-            return routeConfig;
+        config.actionConfigs.forEach(action => {
+            action.driver = action.driver();
         });
         return config;
     }
 
     configureMountpath(config, mountpath) {
-        config.routes.map(routeConfig => {
-            routeConfig.path = mountpath + routeConfig.path;
+        config.actionConfigs.forEach(action => {
+            action.route&& (action.route = mountpath + action.route);
         });
         return config;
     }
 
-    initEnhancers(config, history) {
-        return config.routes.map(routeConfig => 
-            routeConfig.driver.middleware(routeConfig.driver.path, history)
-        );
+    initRoutes(config) {
+        var routes = config.actionConfigs.filter(actionConfig => {
+            return actionConfig.route;
+        });
+        return routes;
     }
 
-    initInitialDriver(config) {
-        return this.config.routes.find(routeConfig => routeConfig.initial)||this.nullDriver;
+    initRootReducer() {
+        const reducerActions = this.actionConfigs.filter(action => action.driver.reducer);
+        const nullDriver = this.nullDriver;
+        return function(state, action) {
+            var matchingConfig = reducerActions.find(config => config.driver.type===action.type);
+            matchingConfig = matchingConfig?matchingConfig.driver:nullDriver;
+            return matchingConfig.reducer(state, action);
+        }
+    }
+
+    initEnhancers(history) {
+        return this.config.actionConfigs
+            .filter(action => action.driver.middleware)
+            .map(action => action.driver.middleware(action.path, history));
+    }
+
+    initInitialDriver() {
+        const initialRoute = this.config.actionConfigs.find((actionConfig) => actionConfig.initial);
+        return initialRoute?initialRoute.driver:this.nullDriver;
     }
 
     initNullDriver() {

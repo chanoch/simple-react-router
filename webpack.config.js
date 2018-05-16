@@ -20,17 +20,19 @@ function getPlugins() {
     }));
 
     if(isProd) {
-        plugins.push(new webpack.optimize.UglifyJsPlugin({
-            sourceMap: true,
-            uglifyOptions: {
-                mangle: false
-            }
-        }));
+        console.log("FIX UGLIFY CODE");
+        // plugins.push(new webpack.optimize.UglifyJsPlugin({
+        //     sourceMap: true,
+        //     uglifyOptions: {
+        //         mangle: false
+        //     }
+        // }));
     }
     return plugins;
 }
 
 module.exports = {
+    watch: true,
     mode: 'development',
     entry: {
         index: path.join(__dirname, '/src/index.js'),

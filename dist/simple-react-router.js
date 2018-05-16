@@ -1,13 +1,13 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("react-dom"));
+		module.exports = factory(require("react"), require("react-dom"));
 	else if(typeof define === 'function' && define.amd)
-		define("simple-react-router", ["react-dom"], factory);
+		define("simple-react-router", ["react", "react-dom"], factory);
 	else if(typeof exports === 'object')
-		exports["simple-react-router"] = factory(require("react-dom"));
+		exports["simple-react-router"] = factory(require("react"), require("react-dom"));
 	else
-		root["simple-react-router"] = factory(root["react-dom"]);
-})(window, function(__WEBPACK_EXTERNAL_MODULE_react_dom__) {
+		root["simple-react-router"] = factory(root["react"], root["react-dom"]);
+})(window, function(__WEBPACK_EXTERNAL_MODULE_react__, __WEBPACK_EXTERNAL_MODULE_react_dom__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -5688,64 +5688,10 @@ module.exports = function(originalModule) {
 
 /***/ }),
 
-/***/ "./src/StoreCreator.js":
-/*!*****************************!*\
-  !*** ./src/StoreCreator.js ***!
-  \*****************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _toConsumableArray2 = __webpack_require__(/*! babel-runtime/helpers/toConsumableArray */ "./node_modules/babel-runtime/helpers/toConsumableArray.js");
-
-var _toConsumableArray3 = _interopRequireDefault(_toConsumableArray2);
-
-exports.default = StoreCreator;
-
-var _redux = __webpack_require__(/*! redux */ "./node_modules/redux/es/index.js");
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * Null state reducer which creates a new state based on applying an action
- * to the old state.
- * 
- * This reducer defaults to returning the existing state (with no side-effects)
- * 
- * @param {Array} state - the old state 
- * @param {Object} action - an action that the reducer can act on
- * @returns {Array} state - the new state 
- */
-function nullReducer(state, action) {
-  return state;
-};
-
-/**
- * Implementation of a redux store creator which substitutes null implementations of 
- * the root reducer, initial state, and any redux effect causing enhancers so that
- * it is safe to create without providing implementations and undefined values for the
- * arguments
- */
-function StoreCreator(rootReducer, initialState, enhancers) {
-  var state = initialState || [];
-  var reducer = rootReducer || nullReducer;
-  var middleware = enhancers || [];
-
-  return (0, _redux.createStore)(reducer, state, _redux.applyMiddleware.apply(undefined, (0, _toConsumableArray3.default)(middleware)));
-}
-
-/***/ }),
-
-/***/ "./src/index.js":
-/*!**********************!*\
-  !*** ./src/index.js ***!
-  \**********************/
+/***/ "./src/Configuration.js":
+/*!******************************!*\
+  !*** ./src/Configuration.js ***!
+  \******************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -5755,7 +5701,129 @@ function StoreCreator(rootReducer, initialState, enhancers) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.SimpleReactRouter = undefined;
+
+var _classCallCheck2 = __webpack_require__(/*! babel-runtime/helpers/classCallCheck */ "./node_modules/babel-runtime/helpers/classCallCheck.js");
+
+var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
+
+var _createClass2 = __webpack_require__(/*! babel-runtime/helpers/createClass */ "./node_modules/babel-runtime/helpers/createClass.js");
+
+var _createClass3 = _interopRequireDefault(_createClass2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Configuration = function () {
+    function Configuration(mountpath, config, history) {
+        (0, _classCallCheck3.default)(this, Configuration);
+
+        this.mountpath = mountpath;
+
+        config = this.instantiateDrivers(config);
+        this.config = this.configureMountpath(config, mountpath);
+
+        this.actionConfigs = this.config.actionConfigs;
+        this.routes = this.initRoutes(config);
+
+        this.nullDriver = this.initNullDriver();
+        this.rootReducer = this.initRootReducer();
+        this.enhancers = this.initEnhancers(history);
+        console.log(this.enhancers);
+        this.initialDriver = this.initInitialDriver();
+    }
+
+    /**
+     * INITIALIISATION FUNCTIONS
+     */
+
+    (0, _createClass3.default)(Configuration, [{
+        key: "instantiateDrivers",
+        value: function instantiateDrivers(config) {
+            config.actionConfigs.forEach(function (action) {
+                action.driver = action.driver();
+            });
+            return config;
+        }
+    }, {
+        key: "configureMountpath",
+        value: function configureMountpath(config, mountpath) {
+            config.actionConfigs.forEach(function (action) {
+                action.route && (action.route = mountpath + action.route);
+            });
+            return config;
+        }
+    }, {
+        key: "initRoutes",
+        value: function initRoutes(config) {
+            var routes = config.actionConfigs.filter(function (actionConfig) {
+                return actionConfig.route;
+            });
+            return routes;
+        }
+    }, {
+        key: "initRootReducer",
+        value: function initRootReducer() {
+            var reducerActions = this.actionConfigs.filter(function (action) {
+                return action.driver.reducer;
+            });
+            var nullDriver = this.nullDriver;
+            return function (state, action) {
+                var matchingConfig = reducerActions.find(function (config) {
+                    return config.driver.type === action.type;
+                });
+                matchingConfig = matchingConfig ? matchingConfig.driver : nullDriver;
+                return matchingConfig.reducer(state, action);
+            };
+        }
+    }, {
+        key: "initEnhancers",
+        value: function initEnhancers(history) {
+            return this.config.actionConfigs.filter(function (action) {
+                return action.driver.middleware;
+            }).map(function (action) {
+                return action.driver.middleware(action.path, history);
+            });
+        }
+    }, {
+        key: "initInitialDriver",
+        value: function initInitialDriver() {
+            var initialRoute = this.config.actionConfigs.find(function (actionConfig) {
+                return actionConfig.initial;
+            });
+            return initialRoute ? initialRoute.driver : this.defaultIfNone;
+        }
+    }, {
+        key: "initNullDriver",
+        value: function initNullDriver() {
+            return {
+                reducer: function reducer(state, action) {
+                    return state;
+                },
+                dispatchAction: function dispatchAction(dispatch) {
+                    return;
+                }
+            };
+        }
+    }]);
+    return Configuration;
+}();
+
+exports.default = Configuration;
+
+/***/ }),
+
+/***/ "./src/SimpleReactRouter.js":
+/*!**********************************!*\
+  !*** ./src/SimpleReactRouter.js ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _regenerator = __webpack_require__(/*! babel-runtime/regenerator */ "./node_modules/babel-runtime/regenerator/index.js");
 
@@ -5781,6 +5849,10 @@ var _createClass2 = __webpack_require__(/*! babel-runtime/helpers/createClass */
 
 var _createClass3 = _interopRequireDefault(_createClass2);
 
+var _react = __webpack_require__(/*! react */ "react");
+
+var _react2 = _interopRequireDefault(_react);
+
 var _reactDom = __webpack_require__(/*! react-dom */ "react-dom");
 
 var _reactDom2 = _interopRequireDefault(_reactDom);
@@ -5797,6 +5869,10 @@ var _StoreCreator = __webpack_require__(/*! ./StoreCreator */ "./src/StoreCreato
 
 var _StoreCreator2 = _interopRequireDefault(_StoreCreator);
 
+var _Configuration = __webpack_require__(/*! ./Configuration */ "./src/Configuration.js");
+
+var _Configuration2 = _interopRequireDefault(_Configuration);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -5811,7 +5887,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * router which modify the state and query the backend for side-effect causing operations
  * like CRUD operations on data sources. 
  */
-var SimpleReactRouter = exports.SimpleReactRouter = function () {
+var SimpleReactRouter = function () {
 
     /**
      * The router class constructor accepts a redux root reducer which maps states to the
@@ -5823,18 +5899,15 @@ var SimpleReactRouter = exports.SimpleReactRouter = function () {
      * 
      * The last parameter is the full set of routes that should be supported by the router
      * 
-     * @param {reducer} rootReducer - a react redux reducer
-     * @param {Object} initialState - an initial redux store representing the start state
-     * @param {Array} enhancers - a set of redux middleware
-     * @param {Array} routes - the set of routes for the applicationn
+     * TODO document this
      */
-    function SimpleReactRouter(routes, rootReducer, initialState, enhancers) {
+    function SimpleReactRouter(mountpath, config) {
         (0, _classCallCheck3.default)(this, SimpleReactRouter);
 
         this.history = (0, _createBrowserHistory2.default)();
-        this.routes = routes;
+        this.config = new _Configuration2.default(mountpath, config, this.history);
 
-        this.store = (0, _StoreCreator2.default)(rootReducer, initialState, enhancers);
+        this.store = (0, _StoreCreator2.default)(this.config.rootReducer, this.config.initialState, this.config.enhancers);
 
         // bind the object's methods to this
         this.matchURI = this.matchURI.bind(this);
@@ -5848,27 +5921,28 @@ var SimpleReactRouter = exports.SimpleReactRouter = function () {
 
         // listen for state changes, invoking render on updates
         this.history.listen(this.render);
+
+        this.config.initialDriver.dispatchAction(this.store.dispatch);
     }
 
     /**
      * Attempt to match the given URI against the path given in the first parameter.
      * 
-     * This method uses regular expressions to attempt a match
-     * 
      * @param {String} path - the path to match again URI
      * @param {*} uri - the URI for the next location to search for
-     * @returns an object with matches or undefined if not matched
+     * @returns an object populated with the discovered params if any. null if no match
      */
 
 
     (0, _createClass3.default)(SimpleReactRouter, [{
         key: 'matchURI',
         value: function matchURI(path, uri) {
-            var keys = [];
+            var keys = []; // populate any ":param" params into an array of keys
             var pattern = (0, _pathToRegexp2.default)(path, keys); // TODO: Use caching
             var match = pattern.exec(uri);
             if (!match) return null;
             var params = (0, _create2.default)(null);
+
             for (var i = 1; i < match.length; i++) {
                 params[keys[i - 1].name] = match[i] !== undefined ? match[i] : undefined;
             }
@@ -5888,100 +5962,101 @@ var SimpleReactRouter = exports.SimpleReactRouter = function () {
         key: 'resolve',
         value: function () {
             var _ref = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee(context) {
-                var _iteratorNormalCompletion, _didIteratorError, _iteratorError, _iterator, _step, route, uri, params, result, error;
+                var _iteratorNormalCompletion, _didIteratorError, _iteratorError, _iterator, _step, routeConfig, uri, params, result, error;
 
                 return _regenerator2.default.wrap(function _callee$(_context) {
                     while (1) {
                         switch (_context.prev = _context.next) {
                             case 0:
+                                console.log(context);
                                 _iteratorNormalCompletion = true;
                                 _didIteratorError = false;
                                 _iteratorError = undefined;
-                                _context.prev = 3;
-                                _iterator = (0, _getIterator3.default)(this.routes);
+                                _context.prev = 4;
+                                _iterator = (0, _getIterator3.default)(this.config.routes);
 
-                            case 5:
+                            case 6:
                                 if (_iteratorNormalCompletion = (_step = _iterator.next()).done) {
-                                    _context.next = 19;
+                                    _context.next = 20;
                                     break;
                                 }
 
-                                route = _step.value;
+                                routeConfig = _step.value;
                                 uri = context.error ? '/error' : context.pathname;
-                                params = this.matchURI(route.path, uri);
+                                params = this.matchURI(routeConfig.route, uri);
 
                                 if (params) {
-                                    _context.next = 11;
+                                    _context.next = 12;
                                     break;
                                 }
 
-                                return _context.abrupt('continue', 16);
+                                return _context.abrupt('continue', 17);
 
-                            case 11:
-                                _context.next = 13;
-                                return route.action(this.store);
+                            case 12:
+                                _context.next = 14;
+                                return routeConfig.page(this.store);
 
-                            case 13:
+                            case 14:
                                 result = _context.sent;
 
                                 if (!result) {
-                                    _context.next = 16;
+                                    _context.next = 17;
                                     break;
                                 }
 
                                 return _context.abrupt('return', result);
 
-                            case 16:
+                            case 17:
                                 _iteratorNormalCompletion = true;
-                                _context.next = 5;
+                                _context.next = 6;
                                 break;
 
-                            case 19:
-                                _context.next = 25;
+                            case 20:
+                                _context.next = 26;
                                 break;
 
-                            case 21:
-                                _context.prev = 21;
-                                _context.t0 = _context['catch'](3);
+                            case 22:
+                                _context.prev = 22;
+                                _context.t0 = _context['catch'](4);
                                 _didIteratorError = true;
                                 _iteratorError = _context.t0;
 
-                            case 25:
-                                _context.prev = 25;
+                            case 26:
                                 _context.prev = 26;
+                                _context.prev = 27;
 
                                 if (!_iteratorNormalCompletion && _iterator.return) {
                                     _iterator.return();
                                 }
 
-                            case 28:
-                                _context.prev = 28;
+                            case 29:
+                                _context.prev = 29;
 
                                 if (!_didIteratorError) {
-                                    _context.next = 31;
+                                    _context.next = 32;
                                     break;
                                 }
 
                                 throw _iteratorError;
 
-                            case 31:
-                                return _context.finish(28);
-
                             case 32:
-                                return _context.finish(25);
+                                return _context.finish(29);
 
                             case 33:
-                                error = new Error('Route ' + context.error + ' not found');
+                                return _context.finish(26);
+
+                            case 34:
+                                error = new Error('Route not found or error thrown: ' + context.error);
 
                                 error.status = 404;
                                 throw error;
 
-                            case 36:
+                            case 37:
                             case 'end':
                                 return _context.stop();
                         }
                     }
-                }, _callee, this, [[3, 21, 25, 33], [26,, 28, 32]]);
+                }, _callee, this, [[4, 22, 26, 34], [27,, 29, 33]]);
             }));
 
             function resolve(_x) {
@@ -6067,6 +6142,97 @@ var SimpleReactRouter = exports.SimpleReactRouter = function () {
     }]);
     return SimpleReactRouter;
 }();
+
+exports.default = SimpleReactRouter;
+
+/***/ }),
+
+/***/ "./src/StoreCreator.js":
+/*!*****************************!*\
+  !*** ./src/StoreCreator.js ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _toConsumableArray2 = __webpack_require__(/*! babel-runtime/helpers/toConsumableArray */ "./node_modules/babel-runtime/helpers/toConsumableArray.js");
+
+var _toConsumableArray3 = _interopRequireDefault(_toConsumableArray2);
+
+exports.default = StoreCreator;
+
+var _redux = __webpack_require__(/*! redux */ "./node_modules/redux/es/index.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * Null state reducer which creates a new state based on applying an action
+ * to the old state.
+ * 
+ * This reducer defaults to returning the existing state (with no side-effects)
+ * 
+ * @param {Array} state - the old state 
+ * @param {Object} action - an action that the reducer can act on
+ * @returns {Array} state - the new state 
+ */
+function nullReducer(state, action) {
+  return state;
+};
+
+/**
+ * Implementation of a redux store creator which substitutes null implementations of 
+ * the root reducer, initial state, and any redux effect causing enhancers so that
+ * it is safe to create without providing implementations and undefined values for the
+ * arguments
+ */
+function StoreCreator(rootReducer, initialState, enhancers) {
+  var state = initialState || [];
+  var reducer = rootReducer || nullReducer;
+  var middleware = enhancers || [];
+
+  return (0, _redux.createStore)(reducer, state, _redux.applyMiddleware.apply(undefined, (0, _toConsumableArray3.default)(middleware)));
+}
+
+/***/ }),
+
+/***/ "./src/index.js":
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _SimpleReactRouter = __webpack_require__(/*! ./SimpleReactRouter */ "./src/SimpleReactRouter.js");
+
+var _SimpleReactRouter2 = _interopRequireDefault(_SimpleReactRouter);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = _SimpleReactRouter2.default;
+
+/***/ }),
+
+/***/ "react":
+/*!************************!*\
+  !*** external "react" ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE_react__;
 
 /***/ }),
 

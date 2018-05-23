@@ -1,22 +1,21 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import toRegex from 'path-to-regexp';
 import createHistory from 'history/createBrowserHistory';
 
 import StoreCreator from './StoreCreator';
 import Configuration from './Configuration';
 
 /**
- * A light-weight router for simple SPAs which avoids using elements to implement
- * routers. It uses redux to dispatch actions that result in a state change.
+ * A react router for simple SPAs. It uses redux to dispatch actions that result in a state 
+ * change based on pages creating URL changes.
  * 
  * A history instance (@see https://www.npmjs.com/package/history) owned by this component
  * listens for application transitions (new URL path) and dispatches the related redux
- * actions from a mapping of paths to root components given in the constructor.
+ * actions from a mapping of paths to components which represent a page in the application,
+ * given in the SPAs configuration.
  * 
- * In order to maintain the reducers clean, enhancers can be provided to the application
- * router which modify the state and query the backend for side-effect causing operations
- * like CRUD operations on data sources. 
+ * Enhancers should be configured to match against the redux state changes which call the 
+ * backend or other services and update the state accordingly. 
  */
 export default class SimpleReactRouter {
 
@@ -33,12 +32,14 @@ export default class SimpleReactRouter {
      * TODO document this
      */
     constructor(mountpath, config) {
+        const { initialState } = config;
+
         this.history = createHistory();
         this.config = new Configuration(mountpath, config, this.history);
         
         this.store = StoreCreator(
             this.config.rootReducer,
-            this.config.initialState,
+            initialState,
             this.config.enhancers
         );
 
@@ -49,67 +50,30 @@ export default class SimpleReactRouter {
         this.dispatch = this.dispatch.bind(this);
         this.render = this.render.bind(this);
 
-        // render the initial application location
-        this.render(this.history.location);
+        this.render(--component which matches location--)
 
         // listen for state changes, invoking render on updates
         this.history.listen(this.render);
 
-        this.config.initialDriver.dispatchAction(this.store.dispatch);
-    }
-
-    /**
-     * Attempt to match the given URI against the path given in the first parameter.
-     * 
-     * @param {String} path - the path to match again URI
-     * @param {*} uri - the URI for the next location to search for
-     * @returns an object populated with the discovered params if any. null if no match
-     */
-    matchURI(path, uri) {
-        const keys = []; // populate any ":param" params into an array of keys
-        const pattern = toRegex(path, keys); // TODO: Use caching
-        const match = pattern.exec(uri);
-        if (!match) return null;
-        const params = Object.create(null);
-
-        for (let i = 1; i < match.length; i++) {
-            params[keys[i-1].name] =
-            match[i] !== undefined ? match[i] : undefined;
-        }
-        return params;
+        dispatch(--action matching location--);
     }
 
     /**
      * Resolve the component to render based on the pathname given as the parameter's
-     * property. If the error property is not undefined, then resolve the error location.
+     * property. 
      * 
-     * If the pathname cannot be resolved to a component, then throw an error.
+     * If the location cannot be resolved then throw an error. The resolver will resolve
+     * the component configured against /error to render an error page
      * 
      * @param {Object} context - an object containing a pathname to resove or an error 
      */
     async resolve(context) {
-        console.log(context);
-        for (const routeConfig of this.config.routes) {
-            const uri = context.error ? '/error' : context.pathname;
-            const params = this.matchURI(routeConfig.route, uri);
-            if (!params) continue;
-            const result = await routeConfig.page(this.store);
-            if (result) return result;
-        }
-        const error = new Error(`Route not found or error thrown: ${context.error}`);
-        error.status = 404;
-        throw error;
-    }
-
-    /*
-     * Render is called when history detects a route 
-     * transition. If the route cannot be found then the error component will
-     * be rendered.
-     * 
-     * @param {any} component - the top level component to render in the HTML
-     */
-    renderComponent(component) {
-        ReactDOM.render(component, document.getElementById('root'));
+        const uri = context.error ? '/error' : context.pathname;
+        const thisRoute = this.config.routes.find((routeConfig) => {
+            return this.matchURI(routeConfig, uri);
+        });
+        console.log(thisRoute);
+        return await thisRoute.page(this.store);
     }
 
     /**
@@ -165,4 +129,16 @@ export default class SimpleReactRouter {
                 this.resolve({location, error})
                     .then(this.renderComponent));
     }
+
+    /*
+     * Render is called when history detects a route 
+     * transition. If the route cannot be found then the error component will
+     * be rendered.
+     * 
+     * @param {any} component - the top level component to render in the HTML
+     */
+    renderComponent(component) {
+        ReactDOM.render(component, document.getElementById('root'));
+    }
+
 }

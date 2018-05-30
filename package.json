@@ -23,6 +23,7 @@
   "homepage": "https://github.com/chanoch/simple-react-router#readme",
   "dependencies": {
     "history": "^4.7.2",
+    "invariant": "^2.2.4",
     "path-to-regexp": "^2.2.0",
     "react": "^16.3.1",
     "react-dom": "^16.3.1",

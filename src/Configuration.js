@@ -1,9 +1,12 @@
-import NullDriver from './NullDriver';
-import RouteConfiguration from './RouteConfiguration';
+import invariant from 'invariant';
 
+import NullDriver from './NullDriver';
+import RootReducer from './RootReducer';
+import RouteConfiguration from './RouteConfiguration';
+import ErrorRoute from './ErrorRoute';
 /**
  * SimpleReactRouter application configuration. This is a executable configuration which
- * hydrates a the json config.
+ * hydrates a json config.
  * 
  * An example configuration is shown below:
  * 
@@ -51,9 +54,7 @@ import RouteConfiguration from './RouteConfiguration';
  * The {@prop page} property represents the react component which should be rendered for the 
  * route. It receives a store prop which contains the application state for the page to use
  * in rendering. 
- */
-export default class Configuration {
-    /**
+
      * Instantiate the configuration:
      * 
      * - Prepend the mountpath to the application paths.
@@ -65,58 +66,67 @@ export default class Configuration {
      * By default this value is '/clearblog'. It is possible to mount with a null, undefined or /
      * mountpath 
      * @param {*} config - the route and action configuration. See class docs
-     */
-    constructor(mountpath, config) {
-        this.mountpath = mountpath;
-        this.actionConfigs = this.config.actionConfigs; // original config
+  */
+export default function Configuration(mountpath, config, history) {
+    const actionConfigs = config.actionConfigs; // original config
 
-        this.nullDriver = new NullDriver();
-        this.appConfig = this.instantiateDrivers(config, this.nullDriver);
-        this.routes = this.configureRoutes(config, mountpath);
+    const appConfig = instantiateDrivers(config, new NullDriver());
+    const routes = configureRoutes(appConfig, mountpath);
 
-        this.rootReducer = this.initRootReducer(this.actionConfigs, this.nullDriver);
-        this.enhancers = this.initEnhancers(history, this.actionConfigs);
+    const rootReducer = new RootReducer(actionConfigs, new NullDriver());
+    const enhancers = initEnhancers(routes);
+
+    return {
+        appConfig,
+        routes,
+        rootReducer,
+        enhancers,
     }
+}
 
-    /**
-     * INITIALIISATION FUNCTIONS
-     */
+/**
+ * INITIALIISATION FUNCTIONS
+ */
 
-    instantiateDrivers(config, defaultDriverInstance) {
-        config.actionConfigs.forEach(action => {
-            action.driver=action.driver?action.driver():defaultDriverInstance;
-        });
-        return config;
-    }
+/**
+ * Instantiate the driver for each configuration. If no driver has been specified,
+ * this will provide the config with a default driver.
+ * 
+ * The default driver is usually a null driver - which has no impact.
+ */
+function instantiateDrivers(config, defaultDriverInstance) {
+    config.actionConfigs.forEach(action => {
+            action.driverInstance=action.driver?action.driver():defaultDriverInstance;
+    });
+    return config;
+}
 
-    configureRoutes(config, mountpath) {
-        // filter out in-page actions
-        const routeConfigs = config.actionConfigs.filter(actionConfig => {
-            return actionConfig.route;
-        });
-        // configure mountpath and path variables (:variable_name)
-        const routes = routesConfigs.map(actionConfig => {
-            return new RouteConfigureRoute(mountpath, actionConfig);
-        });
-        // add default error handler
-        routes.push(this.errorRoute(mountpath));
-        return routes;
-    }
+/**
+    // filter out in-page actions
+    // configure mountpath and path variables (:variable_name)
+    // add default error handler
+ * 
+ * @param {*} config 
+ * @param {*} mountpath 
+ */
+function configureRoutes(config, mountpath) {
+    var routes = config.actionConfigs
+        .filter(actionConfig => actionConfig.path) // find configs with a uri defined
+        .map(actionConfig => new RouteConfiguration(mountpath, actionConfig)); // hydrate
+    const errorRoute = new ErrorRoute()
+    routes.push(new ErrorRoute(mountpath)); // add default error route
+    return routes;
+}
 
-    // TODO convert to class
-    initRootReducer(actionConfigs, defaultDriverInstance) {
-        const reducerActions = actionConfigs.filter(action => action.driver.reducer);
-        const defaultDriver = defaultDriverInstance;
-        return function(state, action) {
-            var matchingConfig = reducerActions.find(config => config.driver.type===action.type);
-            matchingConfig = matchingConfig?matchingConfig.driver:defaultDriver;
-            return matchingConfig.reducer(state, action);
-        }
-    }
-
-    initEnhancers(actionConfigs) {
-        return actionConfigs
-            .filter(action => action.driver.middleware)
-            .map(action => action.driver.middleware());
-    }
+/**
+ * Get a list of action configurations which have a middleware defined and
+ * return an array of those redux state enhancers functions
+ * 
+ * @param {ActionConfig} actionConfigs 
+ */
+function initEnhancers(routes) {
+    invariant(routes.filter(actionConfig => !actionConfig.driverInstance).length===0, 'Routes must have instantiated drivers')
+    return routes
+        .filter(actionConfig => actionConfig.driverInstance.middleware)
+        .map(actionConfig => actionConfig.driverInstance.middleware());
 }

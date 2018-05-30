@@ -74,15 +74,15 @@ test('Test uri with missing param - does not resolve the param', () => {
 
 test('Test RouteConfiguraton constructor - null mountpath = ', () => {
     const route = new RouteConfiguration(null, {route:'blahblah'});
-    expect(route.route).toEqual('/blahblah');
+    expect(route.matchRoute('/blahblah')).toBeTruthy();
 });
 test('Test RouteConfiguraton constructor - empty mountpath = ', () => {
     const route = new RouteConfiguration("", {route:'blahblah'});
-    expect(route.route).toEqual('/blahblah');
+    expect(route.matchRoute('/blahblah')).toBeTruthy;
 });
 test('Test RouteConfiguraton constructor - null actionConfig.route = ', () => {
     const route = new RouteConfiguration("", {route:null});
-    expect(route.route).toEqual('/');        
+    expect(route.matchRoute('/')).toBeTruthy;
 });
 test('Test RouteConfiguraton constructor - null actionConfig = ', (done) => {
     try {
@@ -94,25 +94,19 @@ test('Test RouteConfiguraton constructor - null actionConfig = ', (done) => {
 });
 test('Test RouteConfiguraton constructor - empty actionConfig = ', () => {
     const route = new RouteConfiguration(null, {});
-    expect(route.route).toEqual('/');        
+    expect(route.matchRoute('/')).toBeTruthy;
 });
 test('Test RouteConfiguraton constructor - no trailing slash mountpath =', () => {
     const route = new RouteConfiguration('mountpath', {route:'blahblah'});
-    expect(route.route).toEqual(
-        expect.stringMatching(/^\/mountpath\/blahblah/)
-    )
+    expect(route.matchRoute('/mountpath/blahblah')).toBeTruthy;
 });
 test('Test RouteConfiguraton constructor - trailing slash mountpath =', () => {
     const route = new RouteConfiguration("mountpath/", {route:'/blahblah'});
-    expect(route.route).toEqual(
-        expect.stringMatching(/^\/mountpath\/blahblah/)
-    )
+    expect(route.matchRoute('/mountpath/blahblah/')).toBeTruthy;
 });
 test('Test RouteConfiguraton constructor - slash mountpath = ', () => {
     const route = new RouteConfiguration("/", {route:'/blahblah'});
-    expect(route.route).toEqual(
-        expect.stringMatching(/^\/blahblah/)
-    )
+    expect(route.matchRoute('/blahblah')).toBeTruthy;
 });
     
 test('Test RouteConfiguration.matchRoute() with matching uri', () => {

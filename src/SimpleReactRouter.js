@@ -6,8 +6,7 @@ import StoreCreator from './StoreCreator';
 import Configuration from './Configuration';
 
 /**
- * A react router for simple SPAs. It uses redux to dispatch actions that result in a state 
- * change based on pages creating URL changes.
+ * A react router for simple SPAs.
  * 
  * A history instance (@see https://www.npmjs.com/package/history) owned by this component
  * listens for application transitions (new URL path) and dispatches the related redux
@@ -16,10 +15,10 @@ import Configuration from './Configuration';
  * 
  * Enhancers should be configured to match against the redux state changes which call the 
  * backend or other services and update the state accordingly. 
- */
-export default class SimpleReactRouter {
-
-    /**
+ * 
+ * TODO review docs
+ * TODO declassify
+ * 
      * The router class constructor accepts a redux root reducer which maps states to the
      * reducers which will update the state. An javascript object representing the initial
      * state of the application.
@@ -30,115 +29,80 @@ export default class SimpleReactRouter {
      * The last parameter is the full set of routes that should be supported by the router
      * 
      * TODO document this
-     */
-    constructor(mountpath, config) {
-        const { initialState } = config;
+ */
+export default function SimpleReactRouter(mountpath, configuration) {
+    const { initialState } = configuration;
+    const history = createHistory();
+    const config = new Configuration(mountpath, configuration, history);
+    
+    const store = StoreCreator(
+        config.rootReducer,
+        initialState,
+        config.enhancers
+    );
 
-        this.history = createHistory();
-        this.config = new Configuration(mountpath, config, this.history);
-        
-        this.store = StoreCreator(
-            this.config.rootReducer,
-            initialState,
-            this.config.enhancers
-        );
+    const renderComponentByLocation = render(history, config.routes, store);
 
-        // bind the object's methods to this
-        this.matchURI = this.matchURI.bind(this);
-        this.resolve = this.resolve.bind(this);
-        this.renderComponent = this.renderComponent.bind(this);
-        this.dispatch = this.dispatch.bind(this);
-        this.render = this.render.bind(this);
+    renderComponentByLocation(history.location);
+    history.listen(renderComponentByLocation); // render on location changes
+}
 
-        this.render(--component which matches location--)
+/*
+* When a page transition has been affected (new location), the router asks
+* React to render the new page component. 
+* 
+* @param {any} component - the top level component to render in the HTML
+*/
+async function renderPage(page) {
+    ReactDOM.render(page, document.getElementById('root'));
+}
 
-        // listen for state changes, invoking render on updates
-        this.history.listen(this.render);
-
-        dispatch(--action matching location--);
+/**
+ * Render the new 'page' given by the route. 
+ * 
+ * In order for this to work, each path or location in the application need to have
+ * the root component for it defined. The page component will be passed the store
+ * in the props to extract rendering data. 
+ * 
+ * 'page' here refers to the fact that
+ * the user will perceive the new application state as a new URL and associated
+ * HTML page in a traditional server-side HTML application.
+ * 
+ * const routes = [
+ *      { path: '/menuplanner/', action: (store) => <MenuPlanner store={store} /> },
+ *      { path: '/menuplanner/selectmenu.html', action: (store) => <ChooseRecipes  store={store}/> },
+ * ];
+ * 
+ * export default routes;
+ * 
+ * 
+ */
+function render(history, routes, store) {
+    return function(location) {
+        resolve(location, routes)
+        .then(config => {
+             renderPage(config.page(store, history), routes);
+             const actionParams = config.matchRoute(location.pathname).params;
+             config.driverInstance.dispatchAction(store.dispatch, actionParams);
+        })
+        .catch(error =>
+            resolve({location, error}, routes)
+                .then(errorConfig => renderPage(errorConfig.page(store, history)))); 
     }
+}
 
-    /**
-     * Resolve the component to render based on the pathname given as the parameter's
-     * property. 
-     * 
-     * If the location cannot be resolved then throw an error. The resolver will resolve
-     * the component configured against /error to render an error page
-     * 
-     * @param {Object} context - an object containing a pathname to resove or an error 
-     */
-    async resolve(context) {
-        const uri = context.error ? '/error' : context.pathname;
-        const thisRoute = this.config.routes.find((routeConfig) => {
-            return this.matchURI(routeConfig, uri);
-        });
-        console.log(thisRoute);
-        return await thisRoute.page(this.store);
-    }
-
-    /**
-     * Since the router owns the redux state, dispatch actions should be routed via
-     * this component.
-     * 
-     * An action is an object containing a text type and supporting data required to
-     * process the action. 
-     * 
-     * An action is generally created by an action creator which takes the following
-     * form: 
-     * 
-     * export function archiveMenu(key) {
-     *     return {
-     *         type: ARCHIVE_MENU,
-     *         menu: {key},
-     *         archivedAt: Date.now()
-     *     }
-     * }
-     * 
-     * @param {Action} action - a component containing the type of action and any 
-     * data required to process the action
-     */
-    dispatch(action) {
-        this.store.dispatch(action);
-    }
-
-    /**
-     * Render the new 'page' given by the route. 
-     * 
-     * In order for this to work, each path or location in the application need to have
-     * the root component for it defined. The page component will be passed the store
-     * in the props to extract rendering data. 
-     * 
-     * 'page' here refers to the fact that
-     * the user will perceive the new application state as a new URL and associated
-     * HTML page in a traditional server-side HTML application.
-     * 
-     * const routes = [
-     *      { path: '/menuplanner/', action: (store) => <MenuPlanner store={store} /> },
-     *      { path: '/menuplanner/selectmenu.html', action: (store) => <ChooseRecipes  store={store}/> },
-     * ];
-     * 
-     * export default routes;
-     * 
-     * 
-     * @param {String} location - 
-     */
-    render(location) {
-        this.resolve(location)
-            .then(this.renderComponent)
-            .catch(error =>
-                this.resolve({location, error})
-                    .then(this.renderComponent));
-    }
-
-    /*
-     * Render is called when history detects a route 
-     * transition. If the route cannot be found then the error component will
-     * be rendered.
-     * 
-     * @param {any} component - the top level component to render in the HTML
-     */
-    renderComponent(component) {
-        ReactDOM.render(component, document.getElementById('root'));
-    }
-
+/**
+ * Resolve the component to render based on the pathname given as the parameter's
+ * property. 
+ * 
+ * If the location cannot be resolved then throw an error. The resolver will resolve
+ * the component configured against /error to render an error page
+ * 
+ * @param {Object} context - an object containing a pathname to resove or an error 
+ * 
+ * TODO replace this error approach
+ */
+async function resolve(context, routes) {
+    const uri = context.error ? '/error' : context.pathname;
+    return routes.find(route => route.matchRoute(uri));
 }

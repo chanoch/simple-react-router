@@ -73,26 +73,40 @@ export default function Configuration(mountpath, config, history) {
     const appConfig = instantiateDrivers(config, new NullDriver());
     const routes = configureRoutes(appConfig, mountpath);
 
+    const initialState = config.initialState;
+    initialState.routes = configureRoutesInState(routes);
+    
     const rootReducer = new RootReducer(actionConfigs, new NullDriver());
     const enhancers = initEnhancers(routes);
 
     return {
         appConfig,
         routes,
+        initialState,
         rootReducer,
         enhancers,
     }
 }
 
 /**
- * INITIALIISATION FUNCTIONS
+ * INITIALISATION FUNCTIONS
  */
+
+function configureRoutesInState(routes) {
+    const routesByName = {};
+    routes.forEach(route => {
+        routesByName[route.name] = route.route;
+    });
+    return routesByName;
+}
 
 /**
  * Instantiate the driver for each configuration. If no driver has been specified,
  * this will provide the config with a default driver.
  * 
  * The default driver is usually a null driver - which has no impact.
+ * 
+ * TODO - immutable.js?
  */
 function instantiateDrivers(config, defaultDriverInstance) {
     config.actionConfigs.forEach(action => {
@@ -110,12 +124,13 @@ function instantiateDrivers(config, defaultDriverInstance) {
  * @param {*} mountpath 
  */
 function configureRoutes(config, mountpath) {
+
     var routes = config.actionConfigs
         .filter(actionConfig => actionConfig.path) // find configs with a uri defined
         .map(actionConfig => new RouteConfiguration(mountpath, actionConfig)); // hydrate
     const errorRoute = new ErrorRoute()
-    routes.push(new ErrorRoute(mountpath)); // add default error route
-    return routes;
+    routes.push(new ErrorRoute(mountpath)); // TODO add default error route
+        return routes;
 }
 
 /**

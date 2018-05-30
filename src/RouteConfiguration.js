@@ -4,6 +4,7 @@ export default function RouteConfiguration(mountpath, actionConfig) {
     if(!actionConfig) { 
         throw new Error('ActionConfig is null or undefined - please check your configuration');
     }
+    const name = actionConfig.name;
     const route = setRoute(mountpath, actionConfig.path);
     const driverInstance = actionConfig.driverInstance;
 
@@ -12,6 +13,7 @@ export default function RouteConfiguration(mountpath, actionConfig) {
     const page = actionConfig.page;
 
     return {
+        name,
         route,
         page,
         driverInstance,

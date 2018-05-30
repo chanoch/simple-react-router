@@ -37,7 +37,7 @@ export default function SimpleReactRouter(mountpath, configuration) {
     
     const store = StoreCreator(
         config.rootReducer,
-        initialState,
+        config.initialState,
         config.enhancers
     );
 

@@ -5611,26 +5611,40 @@ function Configuration(mountpath, config, history) {
     var appConfig = instantiateDrivers(config, new _NullDriver2.default());
     var routes = configureRoutes(appConfig, mountpath);
 
+    var initialState = config.initialState;
+    initialState.routes = configureRoutesInState(routes);
+
     var rootReducer = new _RootReducer2.default(actionConfigs, new _NullDriver2.default());
     var enhancers = initEnhancers(routes);
 
     return {
         appConfig: appConfig,
         routes: routes,
+        initialState: initialState,
         rootReducer: rootReducer,
         enhancers: enhancers
     };
 }
 
 /**
- * INITIALIISATION FUNCTIONS
+ * INITIALISATION FUNCTIONS
  */
+
+function configureRoutesInState(routes) {
+    var routesByName = {};
+    routes.forEach(function (route) {
+        routesByName[route.name] = route.route;
+    });
+    return routesByName;
+}
 
 /**
  * Instantiate the driver for each configuration. If no driver has been specified,
  * this will provide the config with a default driver.
  * 
  * The default driver is usually a null driver - which has no impact.
+ * 
+ * TODO - immutable.js?
  */
 function instantiateDrivers(config, defaultDriverInstance) {
     config.actionConfigs.forEach(function (action) {
@@ -5648,6 +5662,7 @@ function instantiateDrivers(config, defaultDriverInstance) {
  * @param {*} mountpath 
  */
 function configureRoutes(config, mountpath) {
+
     var routes = config.actionConfigs.filter(function (actionConfig) {
         return actionConfig.path;
     }) // find configs with a uri defined
@@ -5655,7 +5670,7 @@ function configureRoutes(config, mountpath) {
         return new _RouteConfiguration2.default(mountpath, actionConfig);
     }); // hydrate
     var errorRoute = new _ErrorRoute2.default();
-    routes.push(new _ErrorRoute2.default(mountpath)); // add default error route
+    routes.push(new _ErrorRoute2.default(mountpath)); // TODO add default error route
     return routes;
 }
 
@@ -5856,6 +5871,7 @@ function RouteConfiguration(mountpath, actionConfig) {
     if (!actionConfig) {
         throw new Error('ActionConfig is null or undefined - please check your configuration');
     }
+    var name = actionConfig.name;
     var route = setRoute(mountpath, actionConfig.path);
     var driverInstance = actionConfig.driverInstance;
 
@@ -5864,6 +5880,7 @@ function RouteConfiguration(mountpath, actionConfig) {
     var page = actionConfig.page;
 
     return {
+        name: name,
         route: route,
         page: page,
         driverInstance: driverInstance,
@@ -6074,7 +6091,7 @@ function SimpleReactRouter(mountpath, configuration) {
     var history = (0, _createBrowserHistory2.default)();
     var config = new _Configuration2.default(mountpath, configuration, history);
 
-    var store = (0, _StoreCreator2.default)(config.rootReducer, initialState, config.enhancers);
+    var store = (0, _StoreCreator2.default)(config.rootReducer, config.initialState, config.enhancers);
 
     var renderComponentByLocation = render(history, config.routes, store);
 

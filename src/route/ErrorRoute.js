@@ -1,14 +1,9 @@
 import RouteConfiguration from "./RouteConfiguration";
-import NullDriver from "./NullDriver";
+import NullDriver from "../NullDriver";
 
 /**
  * The default route which loads the error component into the page to identify 404s and
  * 500s
- * 
- * TODO implement the default component. 
- * 
- * TODO Do I need to throw an error? Does that allow some kind of configuration at the app 
- * level for specific users? 
  */
 export default function ErrorRoute(mountpath) {
     const page = function(store) {

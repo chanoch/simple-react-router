@@ -2,8 +2,8 @@ import invariant from 'invariant';
 
 import NullDriver from './NullDriver';
 import RootReducer from './RootReducer';
-import RouteConfiguration from './RouteConfiguration';
-import ErrorRoute from './ErrorRoute';
+import RouteConfiguration from './route/RouteConfiguration';
+import ErrorRoute from './route/ErrorRoute';
 /**
  * SimpleReactRouter application configuration. This is a executable configuration which
  * hydrates a json config.
@@ -74,7 +74,7 @@ export default function Configuration(mountpath, config, history) {
     const routes = configureRoutes(appConfig, mountpath);
 
     const initialState = config.initialState;
-    initialState.routes = configureRoutesInState(routes);
+    initialState.routes = setRoutesInState(routes);
     
     const rootReducer = new RootReducer(actionConfigs, new NullDriver());
     const enhancers = initEnhancers(routes);
@@ -92,7 +92,7 @@ export default function Configuration(mountpath, config, history) {
  * INITIALISATION FUNCTIONS
  */
 
-function configureRoutesInState(routes) {
+function setRoutesInState(routes) {
     const routesByName = {};
     routes.forEach(route => {
         routesByName[route.name] = route.route;
@@ -105,8 +105,6 @@ function configureRoutesInState(routes) {
  * this will provide the config with a default driver.
  * 
  * The default driver is usually a null driver - which has no impact.
- * 
- * TODO - immutable.js?
  */
 function instantiateDrivers(config, defaultDriverInstance) {
     config.actionConfigs.forEach(action => {
@@ -128,8 +126,10 @@ function configureRoutes(config, mountpath) {
     var routes = config.actionConfigs
         .filter(actionConfig => actionConfig.path) // find configs with a uri defined
         .map(actionConfig => new RouteConfiguration(mountpath, actionConfig)); // hydrate
-    const errorRoute = new ErrorRoute()
-    routes.push(new ErrorRoute(mountpath)); // TODO add default error route
+
+    const errorRoute = new ErrorRoute();
+
+    routes.push(new ErrorRoute(mountpath));
         return routes;
 }
 
@@ -140,7 +140,8 @@ function configureRoutes(config, mountpath) {
  * @param {ActionConfig} actionConfigs 
  */
 function initEnhancers(routes) {
-    invariant(routes.filter(actionConfig => !actionConfig.driverInstance).length===0, 'Routes must have instantiated drivers')
+    invariant(routes.filter(actionConfig => !actionConfig.driverInstance).length===0, 'Routes must have instantiated drivers');
+
     return routes
         .filter(actionConfig => actionConfig.driverInstance.middleware)
         .map(actionConfig => actionConfig.driverInstance.middleware());

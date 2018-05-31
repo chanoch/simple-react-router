@@ -5532,11 +5532,11 @@ var _RootReducer = __webpack_require__(/*! ./RootReducer */ "./src/RootReducer.j
 
 var _RootReducer2 = _interopRequireDefault(_RootReducer);
 
-var _RouteConfiguration = __webpack_require__(/*! ./RouteConfiguration */ "./src/RouteConfiguration.js");
+var _RouteConfiguration = __webpack_require__(/*! ./route/RouteConfiguration */ "./src/route/RouteConfiguration.js");
 
 var _RouteConfiguration2 = _interopRequireDefault(_RouteConfiguration);
 
-var _ErrorRoute = __webpack_require__(/*! ./ErrorRoute */ "./src/ErrorRoute.js");
+var _ErrorRoute = __webpack_require__(/*! ./route/ErrorRoute */ "./src/route/ErrorRoute.js");
 
 var _ErrorRoute2 = _interopRequireDefault(_ErrorRoute);
 
@@ -5612,7 +5612,7 @@ function Configuration(mountpath, config, history) {
     var routes = configureRoutes(appConfig, mountpath);
 
     var initialState = config.initialState;
-    initialState.routes = configureRoutesInState(routes);
+    initialState.routes = setRoutesInState(routes);
 
     var rootReducer = new _RootReducer2.default(actionConfigs, new _NullDriver2.default());
     var enhancers = initEnhancers(routes);
@@ -5630,7 +5630,7 @@ function Configuration(mountpath, config, history) {
  * INITIALISATION FUNCTIONS
  */
 
-function configureRoutesInState(routes) {
+function setRoutesInState(routes) {
     var routesByName = {};
     routes.forEach(function (route) {
         routesByName[route.name] = route.route;
@@ -5643,8 +5643,6 @@ function configureRoutesInState(routes) {
  * this will provide the config with a default driver.
  * 
  * The default driver is usually a null driver - which has no impact.
- * 
- * TODO - immutable.js?
  */
 function instantiateDrivers(config, defaultDriverInstance) {
     config.actionConfigs.forEach(function (action) {
@@ -5669,8 +5667,10 @@ function configureRoutes(config, mountpath) {
     .map(function (actionConfig) {
         return new _RouteConfiguration2.default(mountpath, actionConfig);
     }); // hydrate
+
     var errorRoute = new _ErrorRoute2.default();
-    routes.push(new _ErrorRoute2.default(mountpath)); // TODO add default error route
+
+    routes.push(new _ErrorRoute2.default(mountpath));
     return routes;
 }
 
@@ -5684,70 +5684,12 @@ function initEnhancers(routes) {
     (0, _invariant2.default)(routes.filter(function (actionConfig) {
         return !actionConfig.driverInstance;
     }).length === 0, 'Routes must have instantiated drivers');
+
     return routes.filter(function (actionConfig) {
         return actionConfig.driverInstance.middleware;
     }).map(function (actionConfig) {
         return actionConfig.driverInstance.middleware();
     });
-}
-
-/***/ }),
-
-/***/ "./src/ErrorRoute.js":
-/*!***************************!*\
-  !*** ./src/ErrorRoute.js ***!
-  \***************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.default = ErrorRoute;
-
-var _RouteConfiguration = __webpack_require__(/*! ./RouteConfiguration */ "./src/RouteConfiguration.js");
-
-var _RouteConfiguration2 = _interopRequireDefault(_RouteConfiguration);
-
-var _NullDriver = __webpack_require__(/*! ./NullDriver */ "./src/NullDriver.js");
-
-var _NullDriver2 = _interopRequireDefault(_NullDriver);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * The default route which loads the error component into the page to identify 404s and
- * 500s
- * 
- * TODO implement the default component. 
- * 
- * TODO Do I need to throw an error? Does that allow some kind of configuration at the app 
- * level for specific users? 
- */
-function ErrorRoute(mountpath) {
-    var page = function page(store) {
-        React.createElement(
-            "p",
-            null,
-            "Error"
-        );
-        // const error = new Error(`Route not found`);
-        // error.status = 404;
-        // throw error;                        
-    };
-    var driverInstance = new _NullDriver2.default();
-    return {
-        route: mountpath + "/error",
-        driver: _NullDriver2.default,
-        driverInstance: driverInstance,
-        matchRoute: function matchRoute(uri) {
-            var actionConfig = { route: "/error", driverInstance: driverInstance, page: page };
-            return new _RouteConfiguration2.default(mountpath, actionConfig);
-        }
-    };
 }
 
 /***/ }),
@@ -5845,90 +5787,6 @@ function RootReducer(actionConfigs, defaultDriverInstance) {
 
 /***/ }),
 
-/***/ "./src/RouteConfiguration.js":
-/*!***********************************!*\
-  !*** ./src/RouteConfiguration.js ***!
-  \***********************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.default = RouteConfiguration;
-exports.RouteMatch = RouteMatch;
-
-var _pathToRegexp = __webpack_require__(/*! path-to-regexp */ "./node_modules/path-to-regexp/index.js");
-
-var _pathToRegexp2 = _interopRequireDefault(_pathToRegexp);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function RouteConfiguration(mountpath, actionConfig) {
-    if (!actionConfig) {
-        throw new Error('ActionConfig is null or undefined - please check your configuration');
-    }
-    var name = actionConfig.name;
-    var route = setRoute(mountpath, actionConfig.path);
-    var driverInstance = actionConfig.driverInstance;
-
-    var keys = []; // the list of path params (e.g. /mountpath/action-path/:param?param2=:param2)
-    var pattern = (0, _pathToRegexp2.default)(route, keys);
-    var page = actionConfig.page;
-
-    return {
-        name: name,
-        route: route,
-        page: page,
-        driverInstance: driverInstance,
-        matchRoute: function matchRoute(uri) {
-            var pathMatched = pattern.exec(uri);
-            return pathMatched && new RouteMatch(pathMatched, keys);
-        }
-    };
-}
-
-/**
- * A route match instance which parses for URL params based on the specific location
- * passed into it. 
- * 
- * @param {RegExpExecArray} pathMatch - an array of tokens based on the regexp execution 
- * @param {*} keys - the list of parameter keys (:param) to extract from the URI
- */
-function RouteMatch(pathMatch, theKeys) {
-    var match = pathMatch;
-    var keys = theKeys;
-    var params = {};
-
-    // TODO js this
-    for (var i = 1; pathMatch && i < pathMatch.length; i++) {
-        params[keys[i - 1].name] = pathMatch[i] !== undefined ? pathMatch[i] : undefined;
-    }
-
-    return {
-        match: match,
-        keys: keys,
-        params: params
-    };
-}
-
-function setRoute(mountpath, actionConfigRoute) {
-    // make sure that mountpath has a leading slash and no training slash
-
-    var root = mountpath ? mountpath : ""; // if mountpath is null, set to mount on root of site
-    root = root.match(/^\/.*/) ? root : '/' + root; //' add leading slash if missing
-    root = root.match(/^.*\/$/) ? root.substring(0, root.length - 1) : root; // chop off trailing slash
-    root = root.length > 1 ? root : ""; // if root is just slash then mountpath is empty (load on root of site)
-    var path = actionConfigRoute ? actionConfigRoute : ""; // if route is null, load to root of site
-    path = path.match(/^\/.*/) ? path : '/' + path; // add leading slash to path if missing
-    return '' + root + path; // mount application
-}
-
-/***/ }),
-
 /***/ "./src/SimpleReactRouter.js":
 /*!**********************************!*\
   !*** ./src/SimpleReactRouter.js ***!
@@ -6000,42 +5858,6 @@ var renderPage = function () {
  */
 
 
-/**
- * Resolve the component to render based on the pathname given as the parameter's
- * property. 
- * 
- * If the location cannot be resolved then throw an error. The resolver will resolve
- * the component configured against /error to render an error page
- * 
- * @param {Object} context - an object containing a pathname to resove or an error 
- * 
- * TODO replace this error approach
- */
-var resolve = function () {
-    var _ref2 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee2(context, routes) {
-        var uri;
-        return _regenerator2.default.wrap(function _callee2$(_context2) {
-            while (1) {
-                switch (_context2.prev = _context2.next) {
-                    case 0:
-                        uri = context.error ? '/error' : context.pathname;
-                        return _context2.abrupt('return', routes.find(function (route) {
-                            return route.matchRoute(uri);
-                        }));
-
-                    case 2:
-                    case 'end':
-                        return _context2.stop();
-                }
-            }
-        }, _callee2, this);
-    }));
-
-    return function resolve(_x2, _x3) {
-        return _ref2.apply(this, arguments);
-    };
-}();
-
 exports.default = SimpleReactRouter;
 
 var _react = __webpack_require__(/*! react */ "react");
@@ -6071,9 +5893,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * Enhancers should be configured to match against the redux state changes which call the 
  * backend or other services and update the state accordingly. 
  * 
- * TODO review docs
- * TODO declassify
- * 
      * The router class constructor accepts a redux root reducer which maps states to the
      * reducers which will update the state. An javascript object representing the initial
      * state of the application.
@@ -6082,8 +5901,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
      * on the back of routes which have been invoked.
      * 
      * The last parameter is the full set of routes that should be supported by the router
-     * 
-     * TODO document this
  */
 function SimpleReactRouter(mountpath, configuration) {
     var initialState = configuration.initialState;
@@ -6098,17 +5915,57 @@ function SimpleReactRouter(mountpath, configuration) {
     renderComponentByLocation(history.location);
     history.listen(renderComponentByLocation); // render on location changes
 }function render(history, routes, store) {
+    var resolve = resolver(routes);
+
     return function (location) {
-        resolve(location, routes).then(function (config) {
+        resolve(location).then(function (config) {
             renderPage(config.page(store, history), routes);
             var actionParams = config.matchRoute(location.pathname).params;
             config.driverInstance.dispatchAction(store.dispatch, actionParams);
         }).catch(function (error) {
-            return resolve({ location: location, error: error }, routes).then(function (errorConfig) {
+            return resolve({ location: location, error: error }).then(function (errorConfig) {
                 return renderPage(errorConfig.page(store, history));
             });
         });
     };
+}
+
+/**
+ * Resolve the component to render based on the pathname given as the parameter's
+ * property. 
+ * 
+ * If the location cannot be resolved then throw an error. The resolver will resolve
+ * the component configured against /error to render an error page
+ * 
+ * @param {Object} context - an object containing a pathname to resove or an error 
+ * 
+ * TODO replace this error approach
+ */
+function resolver(routes) {
+    return function () {
+        var _ref2 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee2(context) {
+            var uri;
+            return _regenerator2.default.wrap(function _callee2$(_context2) {
+                while (1) {
+                    switch (_context2.prev = _context2.next) {
+                        case 0:
+                            uri = context.error ? '/error' : context.pathname;
+                            return _context2.abrupt('return', routes.find(function (route) {
+                                return route.matchRoute(uri);
+                            }));
+
+                        case 2:
+                        case 'end':
+                            return _context2.stop();
+                    }
+                }
+            }, _callee2, this);
+        }));
+
+        return function (_x2) {
+            return _ref2.apply(this, arguments);
+        };
+    }();
 }
 
 /***/ }),
@@ -6131,7 +5988,7 @@ var _toConsumableArray2 = __webpack_require__(/*! babel-runtime/helpers/toConsum
 
 var _toConsumableArray3 = _interopRequireDefault(_toConsumableArray2);
 
-exports.default = StoreCreator;
+exports.default = createReduxStore;
 
 var _redux = __webpack_require__(/*! redux */ "./node_modules/redux/es/index.js");
 
@@ -6157,7 +6014,7 @@ function nullReducer(state, action) {
  * it is safe to create without providing implementations and undefined values for the
  * arguments
  */
-function StoreCreator(rootReducer, initialState, enhancers) {
+function createReduxStore(rootReducer, initialState, enhancers) {
   var state = initialState || [];
   var reducer = rootReducer || nullReducer;
   var middleware = enhancers || [];
@@ -6188,6 +6045,191 @@ var _SimpleReactRouter2 = _interopRequireDefault(_SimpleReactRouter);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 exports.default = _SimpleReactRouter2.default;
+
+/***/ }),
+
+/***/ "./src/route/ErrorRoute.js":
+/*!*********************************!*\
+  !*** ./src/route/ErrorRoute.js ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.default = ErrorRoute;
+
+var _RouteConfiguration = __webpack_require__(/*! ./RouteConfiguration */ "./src/route/RouteConfiguration.js");
+
+var _RouteConfiguration2 = _interopRequireDefault(_RouteConfiguration);
+
+var _NullDriver = __webpack_require__(/*! ../NullDriver */ "./src/NullDriver.js");
+
+var _NullDriver2 = _interopRequireDefault(_NullDriver);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * The default route which loads the error component into the page to identify 404s and
+ * 500s
+ */
+function ErrorRoute(mountpath) {
+    var page = function page(store) {
+        React.createElement(
+            "p",
+            null,
+            "Error"
+        );
+        // const error = new Error(`Route not found`);
+        // error.status = 404;
+        // throw error;                        
+    };
+    var driverInstance = new _NullDriver2.default();
+    return {
+        route: mountpath + "/error",
+        driver: _NullDriver2.default,
+        driverInstance: driverInstance,
+        matchRoute: function matchRoute(uri) {
+            var actionConfig = { route: "/error", driverInstance: driverInstance, page: page };
+            return new _RouteConfiguration2.default(mountpath, actionConfig);
+        }
+    };
+}
+
+/***/ }),
+
+/***/ "./src/route/RouteConfiguration.js":
+/*!*****************************************!*\
+  !*** ./src/route/RouteConfiguration.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.default = routeConfiguration;
+
+var _pathToRegexp = __webpack_require__(/*! path-to-regexp */ "./node_modules/path-to-regexp/index.js");
+
+var _pathToRegexp2 = _interopRequireDefault(_pathToRegexp);
+
+var _invariant = __webpack_require__(/*! invariant */ "./node_modules/invariant/browser.js");
+
+var _invariant2 = _interopRequireDefault(_invariant);
+
+var _SetRoute = __webpack_require__(/*! ./SetRoute */ "./src/route/SetRoute.js");
+
+var _SetRoute2 = _interopRequireDefault(_SetRoute);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function routeConfiguration(mountpath, actionConfig) {
+    (0, _invariant2.default)(mountpath, 'Mountpath must be provided');
+
+    (0, _invariant2.default)(actionConfig, 'ActionConfig is null or undefined - please check your configuration');
+    var route = (0, _SetRoute2.default)(mountpath, actionConfig.path);
+
+    var keys = []; // the list of path params (e.g. /mountpath/action-path/:param?param2=:param2)
+    var pattern = (0, _pathToRegexp2.default)(route, keys);
+    var parseKeys = routeMatcher(keys);
+
+    return {
+        name: actionConfig.name,
+        route: route,
+        page: actionConfig.page,
+        driverInstance: actionConfig.driverInstance,
+        matchRoute: function matchRoute(uri) {
+            var pathMatched = pattern.exec(uri);
+            return pathMatched && parseKeys(pathMatched);
+        }
+    };
+}
+
+/**
+ * A route match instance which parses for URL params based on the specific location
+ * passed into it. 
+ * 
+ * @param {RegExpExecArray} pathMatch - an array of tokens based on the regexp execution 
+ * @param {*} keys - the list of parameter keys (:param) to extract from the URI
+ */
+function routeMatcher(keys) {
+    return function (match) {
+        var parseParams = paramsParser(keys);
+        if (match) {
+            var params = parseParams(match);
+            return {
+                match: match,
+                keys: keys,
+                params: params
+            };
+        }
+    };
+}
+
+function paramsParser(keys) {
+    return function (match) {
+        var params = {};
+        keys.forEach(function (key, index) {
+            params[key.name] = match[index + 1];
+        });
+        return params;
+    };
+}
+
+/***/ }),
+
+/***/ "./src/route/SetRoute.js":
+/*!*******************************!*\
+  !*** ./src/route/SetRoute.js ***!
+  \*******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.default = setRoute;
+/**
+ * Set a route's path by prefixing the path with a mount path.
+ * 
+ * For example, if the blog is mounted on /clearblog and the 
+ * path is /post/ then the route's path is /clearblog/post/
+ * 
+ * @param {string} mountpath -  the root of the blog
+ * @param {string} actionConfigRoute - the route's path
+ */
+function setRoute(mountpath, actionConfigRoute) {
+    var root = setRoot(mountpath);
+
+    var path = actionConfigRoute ? actionConfigRoute : ""; // if route is null, load to root of site
+    path = path.match(/^\/.*/) ? path : "/" + path; // add leading slash to path if missing
+    return "" + root + path; // mount application
+}
+
+// make sure that mountpath has a leading slash and no training slash
+function setRoot(mountpath) {
+
+    // mount to root if not mountpath
+    var root = mountpath ? mountpath : "";
+    // add leading slash if needed
+    root = root.match(/^\/.*/) ? root : "/" + root;
+    // chop off trailing slash
+    root = root.match(/^.*\/$/) ? root.substring(0, root.length - 1) : root;
+    // if root is just slash then mountpath is empty (load on root of site)
+    root = root.length > 1 ? root : "";
+    return root;
+}
 
 /***/ }),
 

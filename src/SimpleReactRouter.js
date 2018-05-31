@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import createHistory from 'history/createBrowserHistory';
 
-import StoreCreator from './StoreCreator';
+import createStore from './StoreCreator';
 import Configuration from './Configuration';
 
 /**
@@ -16,9 +16,6 @@ import Configuration from './Configuration';
  * Enhancers should be configured to match against the redux state changes which call the 
  * backend or other services and update the state accordingly. 
  * 
- * TODO review docs
- * TODO declassify
- * 
      * The router class constructor accepts a redux root reducer which maps states to the
      * reducers which will update the state. An javascript object representing the initial
      * state of the application.
@@ -27,15 +24,13 @@ import Configuration from './Configuration';
      * on the back of routes which have been invoked.
      * 
      * The last parameter is the full set of routes that should be supported by the router
-     * 
-     * TODO document this
  */
 export default function SimpleReactRouter(mountpath, configuration) {
     const { initialState } = configuration;
     const history = createHistory();
     const config = new Configuration(mountpath, configuration, history);
     
-    const store = StoreCreator(
+    const store = createStore(
         config.rootReducer,
         config.initialState,
         config.enhancers
@@ -78,15 +73,17 @@ async function renderPage(page) {
  * 
  */
 function render(history, routes, store) {
+    const resolve = resolver(routes);
+
     return function(location) {
-        resolve(location, routes)
+        resolve(location)
         .then(config => {
              renderPage(config.page(store, history), routes);
              const actionParams = config.matchRoute(location.pathname).params;
              config.driverInstance.dispatchAction(store.dispatch, actionParams);
         })
         .catch(error =>
-            resolve({location, error}, routes)
+            resolve({location, error})
                 .then(errorConfig => renderPage(errorConfig.page(store, history)))); 
     }
 }
@@ -102,7 +99,9 @@ function render(history, routes, store) {
  * 
  * TODO replace this error approach
  */
-async function resolve(context, routes) {
-    const uri = context.error ? '/error' : context.pathname;
-    return routes.find(route => route.matchRoute(uri));
+function resolver(routes) {
+    return async function(context) {
+        const uri = context.error ? '/error' : context.pathname;
+        return routes.find(route => route.matchRoute(uri));
+    }
 }

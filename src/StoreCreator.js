@@ -18,7 +18,7 @@ function nullReducer(state, action) {return state};
  * it is safe to create without providing implementations and undefined values for the
  * arguments
  */
-export default function StoreCreator(rootReducer, initialState, enhancers) {
+export default function createReduxStore(rootReducer, initialState, enhancers) {
     const state = initialState || [];
     const reducer = rootReducer || nullReducer;
     const middleware = enhancers || [];

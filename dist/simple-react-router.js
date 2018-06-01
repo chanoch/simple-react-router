@@ -6132,7 +6132,7 @@ var _SetRoute2 = _interopRequireDefault(_SetRoute);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function routeConfiguration(mountpath, actionConfig) {
-    (0, _invariant2.default)(mountpath, 'Mountpath must be provided');
+    (0, _invariant2.default)(mountpath !== undefined, 'Mountpath must be provided');
 
     (0, _invariant2.default)(actionConfig, 'ActionConfig is null or undefined - please check your configuration');
     var route = (0, _SetRoute2.default)(mountpath, actionConfig.path);

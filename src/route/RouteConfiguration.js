@@ -4,7 +4,7 @@ import invariant from 'invariant';
 import setRoute from './SetRoute';
 
 export default function routeConfiguration(mountpath, actionConfig) {
-    invariant(mountpath, 'Mountpath must be provided');
+    invariant(mountpath!==undefined, 'Mountpath must be provided');
 
     invariant(actionConfig, 'ActionConfig is null or undefined - please check your configuration');
     const route = setRoute(mountpath, actionConfig.path);
